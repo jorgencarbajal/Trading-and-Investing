@@ -1,1 +1,1 @@
-
+df: a common variable name used as a shorthand for a DataFrame, which is a data structure from the pandas library. It’s not a keyword or built-in term but a convention for naming a DataFrame object.
