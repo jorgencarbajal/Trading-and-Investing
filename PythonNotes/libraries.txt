@@ -1,0 +1,6 @@
+import numpy as np # library for arrays/math
+import pandas as pd # library for data handling
+import matplotlib.pyplot as plt # provides functions to create various plots: line plots, scatter plots, histograms, bar charts, etc.
+import statsmodels.api as sm # statsmodels is a Python library designed for statistical modeling, estimation, and hypothesis testing.
+# It provides tools for conducting statistical analyses, including regression models, time-series analysis, and more.
+from ib_insync import *  # For TWS API (data fetching)
