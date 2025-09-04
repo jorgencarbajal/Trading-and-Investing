@@ -1,1 +1,5 @@
-df: a common variable name used as a shorthand for a DataFrame, which is a data structure from the pandas library. It’s not a keyword or built-in term but a convention for naming a DataFrame object.
+- df
+  a common variable name used as a shorthand for a DataFrame, which is a data structure from the pandas library. It’s not a keyword or built-in term but a convention for naming a DataFrame object.
+  A DataFrame is a 2D table (like a spreadsheet or SQL table) with rows and columns, used for storing and manipulating data.
+  It’s part of the pandas library, imported as import pandas as pd.
+  Example: df = pd.DataFrame(data) creates a DataFrame, often assigned to df for brevity.
