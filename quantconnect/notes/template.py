@@ -23,15 +23,42 @@ class MeasuredOrangeFish(QCAlgorithm):
 
   # sets broker so algorihm accounts for brokers fee structure and account type
   self.SetBrokerageModel(BrokerageName.InteractiveBrokersBrokerage, AccountType.Margin)
-
+  
   # helper variables
   self.entryPrice = 0 # tracks entry price
-  self.period = time 
+  self.period = timedelta(30) # holding period
+  self.nextEntryTime = self.Time # next entry time
 
   
-
+# this is called everytime the end of the bar is reached, or new tick data arrives
 def OnData(self, data): 
-  pass
+  # data parameter is a slice object that contains all the new data for this time step
+  # class Slice: 
+  #   TradeBar Bars;
+  #   QuoteBars QuoteBars;
+  #   Ticks Ticks;
+  #   OptionChains OptionChains;
+  #   FuturesChains FuturesChains
+  #   Splits Splits;
+  #   Dividends Dividends;
+  #   Delistings Delistings;
+  #   SymbolChangedEvents SymbolChangedEvents;
+  
+  # the most important datatype you can access with such a slice object is BaseData
+  # BaseData class contiains: Symbol, Time, Value, EndTime, DataType, IsFillForward
+  # trade bar data: type inherits from BaseData and contains: Open, High, Low, Close, Volume
+  # tick data: last price, bid price, ask price, bid size, ask size (cautious)
+  # quote bar data: bid open, bid high, bid low, bid close, ask open, ask high, ask low, ask close, last price
+
+  # quote bar data is very interesting, there may be somthing there??? ********
+
+  # save the current price
+  # data is a Slice object containing all new market data for the current time step.
+  # Bars is a dictionary within data that maps each tracked Symbol to its latest TradeBar (OHLCV) data.
+  # self.spy is the Symbol object for SPY, previously set in your algorithm.
+  # data.Bars[self.spy] gets the TradeBar for SPY.
+  # .Close accesses the closing price from that TradeBar.
+  price = data.Bars[self.spy].Close
 
 
   
