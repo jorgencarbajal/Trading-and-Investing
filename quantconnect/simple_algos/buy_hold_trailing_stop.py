@@ -36,7 +36,8 @@ class LogicalRedAlbatross(QCAlgorithm):
         # send entry limit order
         if not self.portfolio.invested and not self.transactions.get_open_orders(self.qqq):
             quantity = self.calculate_order_quantity(self.qqq, 0.9)
-            self.entryTicket = self.limit_order(self.qqq, int(quantity), price, "Entry Limit Order")  # Updated: Removed explicit Decimal cast for price, as API accepts float/decimal automatically from Close
+            # Make sure price is a float or decimal.Decimal
+            self.entryTicket = self.limit_order(self.qqq, 100, float(price))
             self.entryTime = self.time
 
         # move limit price if not filled after 1 day
