@@ -1,52 +1,76 @@
-# This template actually works in the QuantConnect cloud platform as of 09/2025
-# modified version of template1 and template2
+"""
+This QuantConnect algorithm implements a simple momentum-based trading strategy for the SPY ETF using daily resolution 
+data in raw normalization mode. It runs a backtest from January 1, 2020, to January 1, 2021, starting with $100,000 
+in cash, using Interactive Brokers as the brokerage model with a margin account, and benchmarks performance against SPY. 
+The strategy includes a 1-day warm-up period to preload data and avoids trading until after a 31-day cooldown period 
+following each exit.
 
-# ***** TEMPLATE FOR A BASIC ALGORITHM *****
+Here's a step-by-step description of the strategy's logic, executed on each new data slice (at the end of each daily 
+bar):
 
-# Use QuantConnect's 2025 cloud platform standard import
+1. Check for Valid Data: The algorithm first verifies if SPY data is available in the current data slice. If not, 
+it logs a message and skips the rest of the logic to prevent errors.
+
+2. Retrieve Current Price: It fetches the closing price of SPY from the data slice.
+
+3. Entry Condition (Buy if Not Invested and Cooldown Expired): If the portfolio is not currently invested (no holdings) 
+and the current time is at or after the next allowed entry time (initially set to the algorithm's start time):
+   - Invest 100% of the portfolio in SPY using the set_holdings method.
+   - Log the buy action with the current price.
+   - Record the entry price for future exit calculations.
+
+4. Exit Condition (Sell on 10% Gain or Loss): If the portfolio is invested and the current price has moved 
+significantly from the entry price—specifically, if it's risen by 10% (current price > entry price * 1.1) or fallen 
+by 10% (current price < entry price * 0.9):
+   - Liquidate all holdings in SPY.
+   - Log the sell action with the current price.
+   - Set the next entry time to the current time plus a 31-day holding/cooldown period, preventing immediate re-entry.
+
+This cycle repeats, effectively buying SPY after any cooldown, holding until a 10% profit target or stop-loss is hit, 
+then selling and waiting 31 days before potentially re-entering. The strategy does not include advanced risk management, 
+indicators, or multi-asset logic beyond SPY.
+"""
+
+
 # Provides QCAlgorithm, Resolution, DataNormalizationMode, and other required classes/enums
 from AlgorithmImports import *
 
 # Import timedelta for holding period calculations
 from datetime import timedelta
 
-# Class name matches new project's default template
 class JumpingYellowGreenFrog(QCAlgorithm):
 
     # ***** INITIALIZATION *****
     def initialize(self):
-        # Updated to snake_case: set_start_date (was SetStartDate)
-        self.set_start_date(2020, 1, 1)
-        # Updated to snake_case: set_end_date (was SetEndDate)
-        self.set_end_date(2021, 1, 1)
-        # Updated to snake_case: set_cash (was SetCash)
-        self.set_cash(100000)
+        self.set_start_date(2020, 1, 1) # Set Start Date
+        self.set_end_date(2021, 1, 1) # Set End Date
+        self.set_cash(100000) # Set Cash
 
         # Added warm-up period to ensure SPY data is pre-loaded
         # Helps avoid missing data at the start of the backtest
         self.set_warm_up(timedelta(days=1))
 
-        # Fixed indentation to align with class
         # add_equity returns a Security object; store it to access Symbol
-        # Updated to snake_case: add_equity (was AddEquity)
-        # Updated enum: Resolution.DAILY (was Resolution.Daily)
         spy = self.add_equity("SPY", Resolution.DAILY)
         # self.AddForex, self.AddFuture...
+        # Resolution.MINUTE: One bar per minute
+        # Resolution.HOUR: One bar per hour
+        # Resolution.SECOND: One bar per second
+        # Resolution.TICK: Every tick (individual trade)
 
         # data mode,
-        # DataNormalizationMode.Adjusted: Splits and dividends are abackwards adjusted into the price of the asset. The price today is the identical to current market price.
+        # DataNormalizationMode.Adjusted: Splits and dividends are abackwards adjusted into the price of the 
+        #   asset. The price today is the identical to current market price.
         # DataNormalizationMode.Raw: No modifications to the asset price at all.
-        # DataNormalizationMode.SplitAdjusted: Only equity splits are applied to the price adjustment, while dividends are still paid in cash to your portfolio. This allows for managment of the dividend payments while
-        # while still given a smooth curve for indicators
+        # DataNormalizationMode.SplitAdjusted: adjusts prices for splits only, not dividends, so you get a 
+        #   smooth price chart and receive dividends as cash in your portfolio.
         # DataNormalizationMode.TotalReturn: Return of the investment adding the dividend sum to the initail asset price
-        # Updated enum: DataNormalizationMode.RAW (was DataNormalizationMode.Raw)
         spy.SetDataNormalizationMode(DataNormalizationMode.RAW)
 
         # Fixed: Changed spySymbol to spy.Symbol to resolve undefined variable error
         self.spy = spy.Symbol
 
         # sets the benchmark the algo
-        # Updated to snake_case: set_benchmark (was SetBenchmark)
         self.set_benchmark("SPY")
 
         # sets broker so algorihm accounts for brokers fee structure and account type
@@ -62,7 +86,6 @@ class JumpingYellowGreenFrog(QCAlgorithm):
         self.nextEntryTime = self.time  # next entry time
 
     # ***** ON DATA HANDLING *****
-    # Updated to lowercase: on_data (was OnData) to match default template
     # Added type hint 'data: Slice' to match template style
     # this is called everytime the end of the bar is reached, or new tick data arrives
     def on_data(self, data: Slice):

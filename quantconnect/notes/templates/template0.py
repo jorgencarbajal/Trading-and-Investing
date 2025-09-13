@@ -33,34 +33,41 @@ from AlgorithmImports import *
 # Import timedelta for holding period calculations
 from datetime import timedelta
 
-class JumpingYellowGreenFrog(QCAlgorithm):  # Matches your new project's template name
+class JumpingYellowGreenFrog(QCAlgorithm): 
 
     # ***** INITIALIZATION *****
+
     # Updated to lowercase: initialize (was Initialize) to match cloud API
     def initialize(self):
+
+        # ***** SET TIMEFRAME/CASH/TIMEZONE *****
+
         # Set the backtest or live trading period
-        # Updated to snake_case: set_start_date (was SetStartDate)
         self.set_start_date(2020, 1, 1)  # Start date (year, month, day)
-        # Updated to snake_case: set_end_date (was SetEndDate)
         self.set_end_date(2021, 1, 1)    # End date; omit for live trading
         # self.set_start_date(datetime(2020, 1, 1))  # Alternative with datetime import
         
         # Initial cash allocation
-        # Updated to snake_case: set_cash (was SetCash)
         self.set_cash(100000)  # Starting capital in USD
         
         # Timezone settings: Default is UTC; set to match data or broker
-        # Updated to snake_case: set_time_zone (was SetTimeZone)
         self.set_time_zone("America/New_York")  # Common for US equities
         
+        # ***** WARM UP KEY? *****
+
         # Warm-up period: Pre-loads historical data to avoid missing data
         # Added to prevent 'NoneType' errors and ensure data availability
+        # self.set_warm_up(...) is a QuantConnect method that specifies how much historical 
+        #   data to load before the main algorithm loop starts.
+        # timedelta(days=1) means 1 day of data will be loaded for each security you’ve added.
+        # Set the warm-up period to match the historical data needs of your indicators or logic. 
+        #   More than one day is needed if your strategy relies on multi-day calculations.
         self.set_warm_up(timedelta(days=1))  # 1 day for daily resolution
         
         # ***** ADD SECURITIES *****
+
         # Add assets to track
-        # Updated to snake_case: add_equity (was AddEquity)
-        # Updated enum: Resolution.DAILY (was Resolution.Daily)
+        # This line registers SPY for daily trading and saves its Symbol for use throughout your algorithm.
         self.spy = self.add_equity("SPY", Resolution.DAILY, Market.USA).Symbol
         # self.add_equity("AAPL", Resolution.MINUTE)  # Minute bars for Apple stock
         # self.add_forex("EURUSD", Resolution.HOUR, Market.OANDA)  # Forex pair
@@ -69,40 +76,48 @@ class JumpingYellowGreenFrog(QCAlgorithm):  # Matches your new project's templat
         # self.add_option("SPY", Resolution.MINUTE)  # Options chain
         
         # Data Normalization Modes
-        # Updated enum: DataNormalizationMode.RAW (was DataNormalizationMode.Raw)
-        # Matches your original code's preference
+        # This line ensures that all price data for SPY in your algorithm is unadjusted for splits and 
+        #   dividends, reflecting the actual prices as they occurred in the market.
+        # self.securities[self.spy] accesses the Security object for SPY.
+        # .Set DataNormalizationMode(...) sets how historical data is presented for that security.
+        # DataNormalizationMode.RAW tells QuantConnect to use raw, unadjusted prices.
+        # SIDENOTE: Adjusted or SplitAdjusted modes are preferred for strategies using indicators 
+        #   (e.g., RSI, MACD) because they ensure continuity in price series, avoiding jumps from splits/dividends 
+        #   that could skew signals. Your strategy doesn’t use indicators, so this isn’t relevant.
         self.securities[self.spy].SetDataNormalizationMode(DataNormalizationMode.RAW)
         
+        # ***** LEVERAGE AND FEES *****
+
         # Leverage and Fees: Customize per security
         self.securities[self.spy].set_leverage(2.0)  # e.g., 2x leverage for margin accounts
         self.securities[self.spy].fee_model = ConstantFeeModel(0.01)  # Flat fee per share
         
         # ***** BENCHMARK AND BROKERAGE *****
+
         # Set benchmark for performance comparison
-        # Updated to snake_case: set_benchmark (was SetBenchmark)
         self.set_benchmark("SPY")
         
-        # Brokerage Model
-        # Updated to snake_case: set_brokerage_model (was SetBrokerageModel)
-        # Updated enum: BrokerageName.INTERACTIVE_BROKERS_BROKERAGE
+        # Brokerage Model: Choose based on your trading account
         self.set_brokerage_model(BrokerageName.INTERACTIVE_BROKERS_BROKERAGE, AccountType.MARGIN)
         
         # ***** UNIVERSE SELECTION (OPTIONAL) *****
-        # Disabled to keep simple, matching your original code
+        
         # self.universe_settings.resolution = Resolution.DAILY
         # self.add_universe(self.coarse_selection_function, self.fine_selection_function)
         
         # ***** INDICATORS AND CONSOLIDATORS *****
+
         # Simplified to exclude indicators, matching your original code
         # self.sma = self.sma(self.spy, 20, Resolution.DAILY)  # 20-period SMA
         # self.rsi = self.rsi(self.spy, 14, MovingAverageType.WILDERS, Resolution.DAILY)  # RSI
         
         # ***** HELPER VARIABLES *****
-        # Matches your original code
+        
         self.entryPrice = 0  # Entry price for the last position
         self.holdingPeriod = timedelta(days=31)  # Matches your 31-day period
-        # Updated to snake_case: time (was Time)
-        self.nextEntryTime = self.time  # Cooldown after exit
+        # This line initializes the next allowed trade time to the current time, enabling 
+        #   immediate trading at the start.
+        self.nextEntryTime = self.time
         
         # Disabled template's extra variables to match your original code
         # self.previousPrice = None
@@ -110,6 +125,8 @@ class JumpingYellowGreenFrog(QCAlgorithm):  # Matches your new project's templat
         # self.symbolData = {}
 
     # ***** ON DATA HANDLING *****
+
+    # This method is the core of your trading logic, processing new market data and executing trades as needed.
     # Updated to lowercase: on_data (was OnData) to match cloud API
     def on_data(self, data: Slice):
         # Slice Structure:
@@ -131,13 +148,17 @@ class JumpingYellowGreenFrog(QCAlgorithm):  # Matches your new project's templat
         # QuoteBar: Bid (Open/High/Low/Close), Ask (Open/High/Low/Close), LastBidSize, LastAskSize.
         # Tick: LastPrice, Quantity, SaleCondition, Exchange, Suspicious, BidPrice, BidSize, AskPrice, AskSize.
         
+        # ***** DATA VALIDATION *****
+
         # Check if data exists to avoid 'NoneType' error
-        # Matches your original code's style with added None check
         if not self.spy in data or data[self.spy] is None:
             self.log(f"No data for SPY at {self.time}")
             return
         
-        # save the current price
+        # ***** RETRIEVE CURRENT PRICE *****
+
+        # This line saves the latest closing price of SPY to the variable price, so you can use it for 
+        #   trading decisions or logging.
         # data is a Slice object containing all new market data for the current time step.
         # Bars is a dictionary within data that maps each tracked Symbol to its latest TradeBar (OHLCV) data.
         # self.spy is the Symbol object for SPY, previously set in your algorithm.
@@ -150,16 +171,15 @@ class JumpingYellowGreenFrog(QCAlgorithm):  # Matches your new project's templat
         #price = self.securities[self.spy].Close
 
         # ***** IMPLEMENT STRATEGY *****
-        # Matches your original logic: Buy SPY with 100% portfolio, sell at ±10% or after 31 days
-        # Updated to snake_case: portfolio (was Portfolio)
+
+        # logic: Buy SPY with 100% portfolio, sell at ±10% or after 31 days
+        # This line ensures that your algorithm only enters a new trade when it is not already invested in any asset.
         if not self.portfolio.invested:
-            # Updated to snake_case: time (was Time)
+            
             if self.nextEntryTime <= self.time:
                 # enter position
-                # Updated to snake_case: set_holdings (was SetHoldings)
                 self.set_holdings(self.spy, 1)  # invest 100% of portfolio in SPY
                 #self.MarketOrder(self.spy, int(self.portfolio.Cash / price))  # buy as many shares as possible with available cash
-                # Updated to snake_case: log (was Log)
                 self.log("BUY SPY @ " + str(price))  # log the buy for reviewing and debugging
                 self.entryPrice = price  # save entry price
         elif self.entryPrice * 1.1 < price or self.entryPrice * 0.9 > price:
@@ -171,7 +191,9 @@ class JumpingYellowGreenFrog(QCAlgorithm):  # Matches your new project's templat
             self.nextEntryTime = self.time + self.holdingPeriod  # set next entry time
 
     # ***** OTHER EVENT HANDLERS (OPTIONAL) *****
-    # Disabled to match your original code's simplicity
+
+    # These handlers let you monitor and respond to important events (orders, daily closes, 
+    #   algorithm end, scheduled tasks) for better tracking, debugging, and control of your trading algorithm.
     # def on_order_event(self, orderEvent):
     #     if orderEvent.status == OrderStatus.FILLED:
     #         self.debug(f"Order Filled: {orderEvent.Symbol} | Quantity: {orderEvent.FillQuantity} | Price: {orderEvent.FillPrice}")
