@@ -1,10 +1,24 @@
 #region imports
 from AlgorithmImports import *
+from PortfolioConstructionModel import PortfolioConstructionModel
 from Portfolio.EqualWeightingPortfolioConstructionModel import EqualWeightingPortfolioConstructionModel
 from utils import reset_and_warm_up
 #endregion
 
+class EqualWeightingPortfolioConstructionModel(PortfolioConstructionModel):
+    def __init__(self, rebalance=None, portfolio_bias=PortfolioBias.LongShort):
+        super().__init__(rebalance, portfolio_bias)
+
+    def create_targets(self, algorithm, insights):
+        # Equally weight all symbols with active insights
+        active_symbols = [insight.symbol for insight in insights]
+        if not active_symbols:
+            return []
+        weight = 1.0 / len(active_symbols)
+        return [PortfolioTarget(symbol, weight) for symbol in active_symbols]
+
 class SparseOptimizationPortfolioConstructionModel(EqualWeightingPortfolioConstructionModel):
+
     '''Using sparse optimization to construct our own replicated portfolio compared to a benchmark
     In this model, we only model the upside while discarding downside datapoints. For details, refer to
     https://www.quantconnect.com/docs/v2/research-environment/applying-research/sparse-optimization
@@ -154,3 +168,5 @@ class SparseOptimizationPortfolioConstructionModel(EqualWeightingPortfolioConstr
         return pd.Series(
             data = [x.value for x in security['window']],
             index = [x.end_time for x in security['window']])[::-1]
+    
+

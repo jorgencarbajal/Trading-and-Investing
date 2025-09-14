@@ -1,9 +1,12 @@
 # region imports
+# This line imports all the core QuantConnect framework
 from AlgorithmImports import *
 from execution import MarketOpenExecutionModel
+# import other files/modules
 from portfolio import SparseOptimizationPortfolioConstructionModel
 from universe import MarketIndexETFUniverseSelectionModel
 # endregion
+
 
 class EquityETFBeta(QCAlgorithm):
 
