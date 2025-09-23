@@ -3,7 +3,12 @@ from AlgorithmImports import *
 #endregion
 
 class MarketIndexETFUniverseSelectionModel(ETFConstituentsUniverseSelectionModel):
+    # -> None means the function does not return any value
+    # universe_settings: UniverseSettings means universe_settings is expected to be
+    # of type UniverseSettings
     def __init__(self, benchmark, universe_settings: UniverseSettings = None) -> None:
+        # super().init(...) calls the constructor of the base class 
+        # ETFConstituentsUniverseSelectionModel, passing along the arguments.
         super().__init__(benchmark, universe_settings, self.etf_constituents_filter)
 
     def etf_constituents_filter(self, constituents):

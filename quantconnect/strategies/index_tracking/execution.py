@@ -7,7 +7,7 @@ class MarketOpenExecutionModel(ExecutionModel):
     '''Provides an implementation of IExecutionModel that immediately submits market orders to achieve the desired portfolio targets,
     only when the market is open'''
 
-    # Constructor in C++, self is like the C++ this pointer
+    # Constructor in C++, self is like the C++ "this" pointer
     def __init__(self):
         # targets_collection is a class variable
         # PortfolioTargetCollection is a class fromt the QuantConnect framework, here we create an
@@ -15,8 +15,9 @@ class MarketOpenExecutionModel(ExecutionModel):
         self.targets_collection = PortfolioTargetCollection()
 
     # Methods are functions in a class
-    # self is always the first argument in a method
-    # 
+    # Self is always the first argument in a method
+    # Algorithm and targets are the arguments passed to the method, these are provided by the QC 
+    # framework
     def execute(self, algorithm, targets):
         # for performance we check count value, OrderByMarginImpact and ClearFulfilled are expensive to call
         self.targets_collection.add_range(targets)
