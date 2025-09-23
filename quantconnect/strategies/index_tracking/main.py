@@ -1,3 +1,59 @@
+"""The lean engine is a piplin of pluggable models. Each model answers one responsibility 
+(what symbols to consider, what signals to produce, how to turn signals into positions, how to 
+place orders, how to apply risk/fees, etc.).
+
+You wire up the models in initialize() (or rely on the framework defaults). The engine calls them 
+in a defined order so the algorithm can make decisions from top (universe/alpha) to bottom (execution).
+
+Example of a model driven pipleine:
+- UniverseSelectionModel: defines the securities to consider (e.g. ETF constituents)
+- AlphaModel (or any code that generates signals/insights): produces signals on what to do
+- PortfolioConstructionModel: converts signals/insights into portfolio targets objects
+- ExecutionModel (optional if you will use the algorithm's own order calls, but normally set to 
+control how targets become orders)
+
+The models are called in the following order:
+1. UniverseSelectionModel: called when the universe needs to be updated (e.g. daily, monthly, etc.)
+2. AlphaModel: called on every new data slice (e.g. every minute, second, etc.)
+3. PortfolioConstructionModel: called after the AlphaModel, to convert insights into portfolio targets
+4. ExecutionModel: called after the PortfolioConstructionModel, to convert portfolio targets into orders
+
+HIGH LEVEL: 
+1. Engine instantiates your QCAlgorithm subclass (e.g., EquityETFBeta).
+2. Calls initialize() once so you can configure the algorithm.
+3. Enters the main loop (backtest replay or live streaming). On each data update the engine:
+    - Updates subscriptions/universe (calls universe models when needed)
+    - Calls alpha/risk/portfolio/execution pipeline as appropriate
+    - Calls OnData (and other event hooks) for your algorithm
+4. Calls end-of-day / end-of-algorithm shutdown hooks when appropriate and then stops.
+
+LIFECYCLE HOOKS:
+- initialize(self)
+    - Called once at the start to set up the algorithm (dates, cash, models, etc.)
+    - Purpose: register securites (add_equity), set start/end dates/cash/brokerage, and register
+    models (set_universe_selection, add_alpha, set_portfolio_construction, set_execution, etc.)
+    - Do heavy setup here -- nothing else runs until this completes.
+- on_data(self, slice)
+    - Called repeatedly whenever new data arrives (per bar or tick depending on Resolution). Recieves
+    a Slice containing all current subscriptions' data.
+    - Purpose:  inspect incoming data, update custom indicators, place manual orders if your arent 
+    using the model pipline. When you use the model pipeline, you rearely place raw orders here, 
+    models handle that.
+- on_secturites_changed(self, changes)
+    - Called whenever the universe changes (securities added/removed). Recieves a SecurityChanges 
+    object with lists of added and removed securities.
+    - Purpose: inspect changes, initialize custom data structures/indicators for new securities, 
+    clean up resources for removed securities.
+- on_order_event(self, order_event)
+    - Called whenever an order's status changes (submitted, filled, cancelled, etc.). Recieves an 
+    OrderEvent object with details about the order change.
+    - Purpose: track order status, implement custom order handling logic (e.g., logging, notifications).
+- on_end_of_day(self, symbol)
+    - Called at the end of each trading day for each security. Recieves the security's symbol.
+    - Purpose: perform end-of-day processing (e.g., logging, custom indicator updates).
+"""
+
+
 # region imports
 # This line imports all the core QuantConnect framework
 from AlgorithmImports import *
@@ -51,15 +107,20 @@ class EquityETFBeta(QCAlgorithm):
         # and account type
         self.set_brokerage_model(BrokerageName.INTERACTIVE_BROKERS_BROKERAGE, AccountType.MARGIN)
 
-        # Our sparse index will be composed by selected SPY's constituents
+        # creates an object of your custom universe selection model
+        # and sets it as the universe selection model for your algorithm
         self.set_universe_selection(MarketIndexETFUniverseSelectionModel(spy, self.universe_settings))
 
+        # add_alpha is a method of QCAlgorithm that adds an alpha model to the algorithm
+        # ConstantAlphaModel is a built-in alpha model that generates constant insights
+        # simple representation of a bullish signal for the next 90 days
         self.add_alpha(ConstantAlphaModel(InsightType.PRICE, InsightDirection.UP, timedelta(90)))
 
-        # We will be using sparse optimization to construct an index to simulate the upward movement 
-        # of the benchmark
+        # defines attribute self.pcm and assigns it an instance of your custom portfolio construction 
+        # model SparseOptimizationPortfolioConstructionModel
         self.pcm = SparseOptimizationPortfolioConstructionModel(self, spy, 252, Resolution.DAILY)
         self.pcm.rebalance_portfolio_on_security_changes = False     # avoid constant rebalancing
+        # the construction model created above is now sent to the method set_portfolio_construction
         self.set_portfolio_construction(self.pcm)
 
         # This is enforced by your MarketOpenExecutionModel, which checks if the exchange is open 

@@ -1,0 +1,24 @@
+- To create an algo, start by defining a subclass of the QCAlgorithm class.
+- The class is one big class with lots of helper properties and helper methods.
+- Key helper properties include: Security Manager, Portfolio Manager, Transactions Manager, Notification Manager, and Scheduling Manager.
+- The Securities property is a dictionary of Security objects. Each asset (Equity, Forex pair, etc) in your algorithm has a Security object.
+- The Portfolio is a dictionary of SecurityHolding objects.
+
+class QCAlgorithm:
+    securities   # Array of Security objects.
+    portfolio    # Array of SecurityHolding objects
+    transactions # Transactions helper
+    schedule     # Scheduling helper
+    notify       # Email, SMS helper
+    universe     # Universe helper
+
+    # Set up Requested Data, Cash, Time Period.
+    def initialize(self) -> None:
+
+    # Other Event Handlers
+    def on_data(self, slice: Slice) -> None:
+    def on_end_of_day(self, symbol: Symbol) -> None:
+    def on_end_of_algorithm(self) -> None:
+
+    # Indicator Helpers
+    def sma(self, symbol: Symbol, period: int) -> SimpleMovingAverage:

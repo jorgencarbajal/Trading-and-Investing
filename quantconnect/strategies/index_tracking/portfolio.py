@@ -122,6 +122,26 @@ class SparseOptimizationPortfolioConstructionModel(EqualWeightingPortfolioConstr
                 result[insight] = self.w[symbol] / total_weight
 
         return result
+
+    # added after the fact...
+    def create_targets(self, algorithm, insights):
+        """Create PortfolioTarget objects from active insights using the
+        optimized weights computed by determine_target_percent.
+        """
+        # Filter active insights (framework typically passes active insights)
+        active_insights = [ins for ins in insights if ins is not None]
+        if not active_insights:
+            return []
+
+        # determine_target_percent returns a mapping insight -> percent
+        target_percents = self.determine_target_percent(active_insights)
+
+        targets = []
+        for insight in active_insights:
+            pct = target_percents.get(insight, 0)
+            targets.append(PortfolioTarget(insight.symbol, pct))
+
+        return targets
         
     def on_securities_changed(self, algorithm, changes):
         super().on_securities_changed(algorithm, changes)
