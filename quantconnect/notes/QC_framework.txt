@@ -22,3 +22,12 @@ class QCAlgorithm:
 
     # Indicator Helpers
     def sma(self, symbol: Symbol, period: int) -> SimpleMovingAverage:
+
+- batch vs stream, QuantConnect has a stream process which help provide a live trading like
+enviroment, batch data can accidently introduce look ahead bias. 
+- When deploying the algo, lean first calls the initialize method.
+- In live mode the engine loads holdings and opens orders from your brokerage account to add
+data subscriptions and populate the securities, portfolio, and transactions objects.
+- Time modeling: on_data is the primary event handler. This handler takes in a slice object the 
+method takes in represents all of the data at a moment of time, a time-slice.
+- slice objects have a whole list of properties
