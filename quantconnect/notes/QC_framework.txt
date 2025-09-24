@@ -25,9 +25,22 @@ class QCAlgorithm:
 
 - batch vs stream, QuantConnect has a stream process which help provide a live trading like
 enviroment, batch data can accidently introduce look ahead bias. 
+
+EVENT FLOW
+
 - When deploying the algo, lean first calls the initialize method.
 - In live mode the engine loads holdings and opens orders from your brokerage account to add
 data subscriptions and populate the securities, portfolio, and transactions objects.
-- Time modeling: on_data is the primary event handler. This handler takes in a slice object the 
-method takes in represents all of the data at a moment of time, a time-slice.
-- slice objects have a whole list of properties
+
+    TIME MODELING
+
+    - Time modeling: on_data is the primary event handler. This handler takes in a slice object the 
+    method takes in represents all of the data at a moment of time, a time-slice.
+    - slice objects have a whole list of properties
+
+- LEAN receives the data from the subscriptions, synchronizes the data to create a timeslice, and 
+then performs the following steps. Your algorithm can spend up to 10 minutes on each timeslice unless 
+you call the train method.
+- The engine performs 25 steps that can be found at... 
+https://www.quantconnect.com/docs/v2/writing-algorithms/key-concepts/algorithm-engine
+- 
